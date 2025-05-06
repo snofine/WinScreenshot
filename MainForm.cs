@@ -24,6 +24,7 @@ namespace Screenshoter
         private string saveFolder;
         private List<HotKey> hotKeys = new List<HotKey>();
         private bool copyToClipboard = true;
+        private Bitmap fullScreenshot;
 
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
@@ -53,6 +54,17 @@ namespace Screenshoter
             public int Modifiers { get; set; }
             public string Description { get; set; }
             public ScreenshotType ScreenshotType { get; set; }
+        }
+
+        // Вспомогательный класс для двойной буферизации
+        private class BufferedForm : Form
+        {
+            public BufferedForm()
+            {
+                this.DoubleBuffered = true;
+                this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+                this.UpdateStyles();
+            }
         }
 
         public MainForm()
@@ -359,178 +371,145 @@ namespace Screenshoter
             this.Hide();
             Thread.Sleep(200);
 
-            overlayForm = new Form
+            // Делаем скриншот всего экрана заранее
+            Rectangle screenBounds = Screen.PrimaryScreen.Bounds;
+            fullScreenshot = new Bitmap(screenBounds.Width, screenBounds.Height);
+            using (Graphics g = Graphics.FromImage(fullScreenshot))
+            {
+                g.CopyFromScreen(Point.Empty, Point.Empty, screenBounds.Size);
+            }
+
+            overlayForm = new BufferedForm
             {
                 FormBorderStyle = FormBorderStyle.None,
                 WindowState = FormWindowState.Maximized,
                 TopMost = true,
                 Cursor = Cursors.Cross,
-                BackColor = Color.White,
-                Opacity = 0.01
+                BackColor = Color.Black,
+                Opacity = 1.0,
+                ShowInTaskbar = false
             };
 
-            overlayForm.MouseDown += OverlayForm_MouseDown;
-            overlayForm.MouseMove += OverlayForm_MouseMove;
-            overlayForm.MouseUp += OverlayForm_MouseUp;
-            overlayForm.KeyDown += OverlayForm_KeyDown;
-            overlayForm.Paint += OverlayForm_Paint;
-
-            overlayForm.Show();
-        }
-
-        private void OverlayForm_Paint(object sender, PaintEventArgs e)
-        {
-            if (isCapturing && captureArea.Width > 0 && captureArea.Height > 0)
-            {
-                // Рисуем тёмную заливку
-                using (SolidBrush brush = new SolidBrush(Color.FromArgb(70, 0, 0, 0)))
-                {
-                    e.Graphics.FillRectangle(brush, captureArea);
-                }
-                
-                // Рисуем внешнюю подсветку (белую)
-                using (Pen outerGlowPen = new Pen(Color.White, 2))
-                {
-                    e.Graphics.DrawRectangle(outerGlowPen, captureArea);
-                }
-                
-                // Рисуем основную рамку (чёрную)
-                using (Pen pen = new Pen(Color.Black, 2))
-                {
-                    e.Graphics.DrawRectangle(pen, captureArea);
-                }
-            }
-        }
-
-        private void OverlayForm_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left)
+            overlayForm.MouseDown += (s, ev) =>
             {
                 isCapturing = true;
-                startPoint = e.Location;
-                captureArea = new Rectangle();
-            }
-        }
-
-        private void OverlayForm_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (isCapturing)
-            {
-                int x = Math.Min(startPoint.X, e.X);
-                int y = Math.Min(startPoint.Y, e.Y);
-                int width = Math.Abs(startPoint.X - e.X);
-                int height = Math.Abs(startPoint.Y - e.Y);
-
-                captureArea = new Rectangle(x, y, width, height);
+                startPoint = ev.Location;
+                captureArea = new Rectangle(ev.Location, new Size(0, 0));
                 overlayForm.Invalidate();
-            }
-        }
+            };
 
-        private void OverlayForm_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left && isCapturing)
+            overlayForm.MouseMove += (s, ev) =>
+            {
+                if (isCapturing)
+                {
+                    var width = ev.X - startPoint.X;
+                    var height = ev.Y - startPoint.Y;
+                    captureArea = new Rectangle(
+                        Math.Min(startPoint.X, ev.X),
+                        Math.Min(startPoint.Y, ev.Y),
+                        Math.Abs(width),
+                        Math.Abs(height)
+                    );
+                    overlayForm.Invalidate();
+                }
+            };
+
+            overlayForm.MouseUp += (s, ev) =>
             {
                 isCapturing = false;
-                if (captureArea.Width > 0 && captureArea.Height > 0)
+                overlayForm.Close();
+                CaptureArea(captureArea);
+                this.Show();
+            };
+
+            overlayForm.Paint += (s, ev) =>
+            {
+                // Нарисовать скриншот с затемнением
+                if (fullScreenshot != null)
                 {
-                    overlayForm.Hide();
-                    Thread.Sleep(100);
-                    CaptureSelectedArea();
-                    overlayForm.Close();
+                    ev.Graphics.DrawImage(fullScreenshot, 0, 0);
+                    using (Brush darkBrush = new SolidBrush(Color.FromArgb(150, 0, 0, 0)))
+                    {
+                        ev.Graphics.FillRectangle(darkBrush, ev.ClipRectangle);
+                    }
+                    if (isCapturing && captureArea.Width > 0 && captureArea.Height > 0)
+                    {
+                        // Вырезать выделенную область и нарисовать её без затемнения
+                        ev.Graphics.SetClip(captureArea);
+                        ev.Graphics.DrawImage(fullScreenshot, 0, 0);
+                        ev.Graphics.ResetClip();
+                        // Нарисовать рамку
+                        using (Pen pen = new Pen(Color.Red, 2))
+                        {
+                            ev.Graphics.DrawRectangle(pen, captureArea);
+                        }
+                    }
                 }
-                else
-                {
-                    overlayForm.Close();
-                }
-            }
+            };
+
+            overlayForm.ShowDialog();
         }
 
-        private void OverlayForm_KeyDown(object sender, KeyEventArgs e)
+        private void CaptureArea(Rectangle area)
         {
-            if (e.KeyCode == Keys.Escape)
+            if (fullScreenshot != null && area.Width > 0 && area.Height > 0)
             {
-                overlayForm.Close();
+                using (Bitmap bmp = new Bitmap(area.Width, area.Height))
+                {
+                    using (Graphics g = Graphics.FromImage(bmp))
+                    {
+                        g.DrawImage(fullScreenshot, new Rectangle(0, 0, area.Width, area.Height), area, GraphicsUnit.Pixel);
+                    }
+                    SaveOrCopy(bmp);
+                }
             }
         }
 
         private void CaptureFullScreen()
         {
-            try
+            Rectangle bounds = Screen.PrimaryScreen.Bounds;
+            using (Bitmap bmp = new Bitmap(bounds.Width, bounds.Height))
             {
-                Rectangle bounds = Screen.PrimaryScreen.Bounds;
-                using (Bitmap screenshot = new Bitmap(bounds.Width, bounds.Height))
+                using (Graphics g = Graphics.FromImage(bmp))
                 {
-                    using (Graphics graphics = Graphics.FromImage(screenshot))
-                    {
-                        graphics.CopyFromScreen(bounds.Left, bounds.Top, 0, 0, bounds.Size);
-                    }
-
-                    SaveScreenshot(screenshot);
+                    g.CopyFromScreen(Point.Empty, Point.Empty, bounds.Size);
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при создании скриншота: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                SaveOrCopy(bmp);
             }
         }
 
         private void CaptureActiveWindow()
         {
-            try
+            IntPtr hwnd = GetForegroundWindow();
+            if (hwnd != IntPtr.Zero && GetWindowRect(hwnd, out RECT rect))
             {
-                IntPtr handle = GetForegroundWindow();
-                RECT rect;
-                GetWindowRect(handle, out rect);
-                Rectangle bounds = new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
-
-                using (Bitmap screenshot = new Bitmap(bounds.Width, bounds.Height))
+                Rectangle area = new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
+                using (Bitmap bmp = new Bitmap(area.Width, area.Height))
                 {
-                    using (Graphics graphics = Graphics.FromImage(screenshot))
+                    using (Graphics g = Graphics.FromImage(bmp))
                     {
-                        graphics.CopyFromScreen(bounds.Left, bounds.Top, 0, 0, bounds.Size);
+                        g.CopyFromScreen(new Point(area.Left, area.Top), Point.Empty, area.Size);
                     }
 
-                    SaveScreenshot(screenshot);
+                    SaveOrCopy(bmp);
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при создании скриншота: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void SaveScreenshot(Bitmap screenshot)
+        private void SaveOrCopy(Bitmap bmp)
         {
+            string filename = $"Screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+            string path = System.IO.Path.Combine(saveFolder, filename);
+
+            bmp.Save(path, ImageFormat.Png);
+
             if (copyToClipboard)
             {
-                Clipboard.SetImage(screenshot);
+                Clipboard.SetImage(bmp);
             }
 
-            string fileName = $"Screenshot_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.png";
-            string filePath = Path.Combine(saveFolder, fileName);
-
-            screenshot.Save(filePath, ImageFormat.Png);
-            MessageBox.Show($"Скриншот сохранен: {filePath}", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
-        private void CaptureSelectedArea()
-        {
-            try
-            {
-                using (Bitmap screenshot = new Bitmap(captureArea.Width, captureArea.Height))
-                {
-                    using (Graphics graphics = Graphics.FromImage(screenshot))
-                    {
-                        graphics.CopyFromScreen(captureArea.Left, captureArea.Top, 0, 0, captureArea.Size);
-                    }
-
-                    SaveScreenshot(screenshot);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при создании скриншота: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            trayIcon.ShowBalloonTip(2000, "Скриншот сделан", $"Сохранено: {filename}", ToolTipIcon.Info);
         }
 
         private void OnExitClick(object sender, EventArgs e)
@@ -539,25 +518,9 @@ namespace Screenshoter
             {
                 UnregisterHotKey(this.Handle, hotKey.Id);
             }
+
             trayIcon.Visible = false;
             Application.Exit();
         }
-
-        protected override void OnFormClosing(FormClosingEventArgs e)
-        {
-            foreach (var hotKey in hotKeys)
-            {
-                UnregisterHotKey(this.Handle, hotKey.Id);
-            }
-            if (e.CloseReason == CloseReason.UserClosing)
-            {
-                e.Cancel = true;
-                this.Hide();
-            }
-            else
-            {
-                base.OnFormClosing(e);
-            }
-        }
     }
-} 
+}

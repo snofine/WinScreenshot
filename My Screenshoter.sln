@@ -2,18 +2,24 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Screenshoter", "Screenshoter.csproj", "{784F4161-FC87-A860-8024-042147D61696}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Screenshoter", "Screenshoter.csproj", "{784F4161-FC87-A860-8024-042147D61696}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{784F4161-FC87-A860-8024-042147D61696}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{784F4161-FC87-A860-8024-042147D61696}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{784F4161-FC87-A860-8024-042147D61696}.Debug|x64.ActiveCfg = Debug|x64
+		{784F4161-FC87-A860-8024-042147D61696}.Debug|x64.Build.0 = Debug|x64
 		{784F4161-FC87-A860-8024-042147D61696}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{784F4161-FC87-A860-8024-042147D61696}.Release|Any CPU.Build.0 = Release|Any CPU
+		{784F4161-FC87-A860-8024-042147D61696}.Release|x64.ActiveCfg = Release|x64
+		{784F4161-FC87-A860-8024-042147D61696}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
