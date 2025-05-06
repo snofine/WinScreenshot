@@ -19,7 +19,7 @@
 
 ## Установка
 
-1. Скачайте последнюю версию из раздела [Releases](https://github.com/yourusername/WinScreenshot/releases)
+1. Скачайте последнюю версию из раздела [Releases](https://github.com/snofine/WinScreenshot/releases)
 2. Распакуйте архив
 3. Запустите WinScreenshot.exe
 
@@ -35,7 +35,7 @@
 
 1. Клонируйте репозиторий:
 ```bash
-git clone https://github.com/yourusername/WinScreenshot.git
+git clone https://github.com/snofine/WinScreenshot.git
 ```
 
 2. Откройте решение в Visual Studio 2022
@@ -69,7 +69,7 @@ A convenient screenshot tool for Windows with hotkey support.
 
 ## Installation
 
-1. Download the latest version from the [Releases](https://github.com/yourusername/WinScreenshot/releases) section
+1. Download the latest version from the [Releases](https://github.com/snofine/WinScreenshot/releases) section
 2. Extract the archive
 3. Run WinScreenshot.exe
 
@@ -85,7 +85,7 @@ After launch, the application minimizes to the system tray. Available actions:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/WinScreenshot.git
+git clone https://github.com/snofine/WinScreenshot.git
 ```
 
 2. Open the solution in Visual Studio 2022
