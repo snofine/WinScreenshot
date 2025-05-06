@@ -19,9 +19,15 @@
 
 ## Установка
 
-1. Скачайте последнюю версию из раздела [Releases](https://github.com/snofine/WinScreenshot/releases)
-2. Распакуйте архив
-3. Запустите WinScreenshot.exe
+### Вариант 1: Установщик (рекомендуется)
+1. Скачайте `WinScreenshot-Setup.exe` из раздела [Releases](https://github.com/snofine/WinScreenshot/releases)
+2. Запустите установщик и следуйте инструкциям
+3. Программа будет установлена в Program Files и добавлена в меню Пуск
+
+### Вариант 2: Портативная версия
+1. Скачайте `WinScreenshot-Portable.zip` из раздела [Releases](https://github.com/snofine/WinScreenshot/releases)
+2. Распакуйте архив в любую папку
+3. Запустите `WinScreenshot.exe`
 
 ## Использование
 
@@ -69,9 +75,15 @@ A convenient screenshot tool for Windows with hotkey support.
 
 ## Installation
 
-1. Download the latest version from the [Releases](https://github.com/snofine/WinScreenshot/releases) section
-2. Extract the archive
-3. Run WinScreenshot.exe
+### Option 1: Installer (recommended)
+1. Download `WinScreenshot-Setup.exe` from the [Releases](https://github.com/snofine/WinScreenshot/releases) section
+2. Run the installer and follow the instructions
+3. The program will be installed in Program Files and added to the Start menu
+
+### Option 2: Portable version
+1. Download `WinScreenshot-Portable.zip` from the [Releases](https://github.com/snofine/WinScreenshot/releases) section
+2. Extract the archive to any folder
+3. Run `WinScreenshot.exe`
 
 ## Usage
 
